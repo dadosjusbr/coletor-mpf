@@ -64,7 +64,7 @@ func main() {
 		log.Fatalf("Error crawling (%s, %s, %s): %v", year, month, outputFolder, err)
 	}
 
-	// O parser do MPMS espera os arquivos separados por \n. Mudanças aqui tem que
+	// O parser do MPF espera os arquivos separados por \n. Mudanças aqui tem que
 	// refletir as expectativas lá.
 	fmt.Println(strings.Join(downloads, "\n"))
 }
