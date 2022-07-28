@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/chromedp/cdproto/browser"
@@ -51,7 +51,7 @@ func (c crawler) crawl() ([]string, error) {
 	// Realiza o download
 	// Contracheque
 	log.Printf("Realizando seleção (%s/%s)...", c.month, c.year)
-	if err := c.selecionaAnoMes(ctx, "contra", c.year, c.month); err != nil {
+	if err := c.selecionaAno(ctx, "contra", c.year); err != nil {
 		log.Fatalf("Erro no setup:%v", err)
 	}
 	log.Printf("Seleção realizada com sucesso!\n")
@@ -64,7 +64,7 @@ func (c crawler) crawl() ([]string, error) {
 
 	// Indenizações
 	log.Printf("Realizando seleção (%s/%s)...", c.month, c.year)
-	if err := c.selecionaAnoMes(ctx, "inde", c.year, c.month); err != nil {
+	if err := c.selecionaAno(ctx, "inde", c.year); err != nil {
 		log.Fatalf("Erro no setup:%v", err)
 	}
 	log.Printf("Seleção realizada com sucesso!\n")
@@ -83,54 +83,68 @@ func (c crawler) downloadFilePath(prefix string) string {
 	return filepath.Join(c.output, fmt.Sprintf("membros-ativos-%s-%s-%s.ods", prefix, c.month, c.year))
 }
 
-func (c crawler) selecionaAnoMes(ctx context.Context, tipo string, year string, month string) error {
+func (c crawler) selecionaAno(ctx context.Context, tipo string, year string) error {
 	var baseURL string
-	//selectYear := `//*[@id="select_ano"]`
 
-	//title := fmt.Sprintf(`//*[@title="Remuneração de Membros Ativos - %s - ODS"]`, selectMonth[month])
 	if tipo == "contra" {
 		baseURL = "http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos"
+		return chromedp.Run(ctx,
+			chromedp.Navigate(baseURL),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Seleciona o ano
+			chromedp.SetValue(`//*[@id="select_ano"]`, year, chromedp.BySearch),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Altera o diretório de download
+			browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).
+				WithDownloadPath(c.output).
+				WithEventsEnabled(true),
+		)
 	} else {
 		baseURL = "http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias"
+		return chromedp.Run(ctx,
+			chromedp.Navigate(baseURL),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Seleciona a opção -> Membros Ativos
+			chromedp.SetValue(`//*[@id="select_opcao1"]`, "membros-ativos", chromedp.BySearch),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Seleciona o ano
+			chromedp.SetValue(`//*[@id="selectAno"]`, year, chromedp.BySearch),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Consulta
+			chromedp.Click(`//*[@id="btnConsultar"]`, chromedp.BySearch, chromedp.NodeVisible),
+			chromedp.Sleep(c.timeBetweenSteps),
+
+			// Altera o diretório de download
+			browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).
+				WithDownloadPath(c.output).
+				WithEventsEnabled(true),
+		)
 	}
-
-	return chromedp.Run(ctx,
-		chromedp.Navigate(baseURL),
-		chromedp.Sleep(c.timeBetweenSteps),
-
-		// Seleciona o ano
-		/*chromedp.SetValue(selectYear, year, chromedp.BySearch),
-		chromedp.Sleep(c.timeBetweenSteps),*/
-
-		// Altera o diretório de download
-		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).
-			WithDownloadPath(c.output).
-			WithEventsEnabled(true),
-	)
 }
 
 // A função exportaPlanilha clica no botão correto para exportar para excel, espera um tempo para o download e renomeia o arquivo.
 func (c crawler) exportaPlanilha(ctx context.Context, fName string) error {
 	var link string
-	var baseURL string
-	selectMonth := map[string]string{"01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril", "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto", "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro"}
-	if strings.Contains(fName, "contracheque") {
-		baseURL = "http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos"
-		link = fmt.Sprintf("/%s/remuneracao-membros-ativos_%s_%s.ods", c.year, c.year, selectMonth[c.month])
-		chromedp.Run(ctx,
-			// Clica no botão de download
-			chromedp.Navigate(baseURL+link),
-			chromedp.Sleep(c.timeBetweenSteps),
-		)
-	} else {
-		baseURL = "http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias"
-		link = fmt.Sprintf("/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", c.year, c.year, selectMonth[c.month])
-		chromedp.Run(ctx,
-			// Clica no botão de download
-			chromedp.Navigate(baseURL+link),
-			chromedp.Sleep(c.timeBetweenSteps),
-		)
+	monthConverted, err := strconv.Atoi(c.month)
+	if err != nil {
+		log.Fatal("erro ao converter mês para inteiro")
 	}
+	if monthConverted <= 6 {
+		link = fmt.Sprintf(`/html/body/div[2]/div[2]/div[1]/div[1]/div/div[3]/div/div[4]/div[2]/div[1]/div[%d]/a`, 3+5*(monthConverted-1))
+	} else {
+		link = fmt.Sprintf(`/html/body/div[2]/div[2]/div[1]/div[1]/div/div[3]/div/div[4]/div[2]/div[2]/div[%d]/a`, 3+5*(monthConverted-1))
+	}
+
+	chromedp.Run(ctx,
+		// Clica no botão de download
+		chromedp.Click(link, chromedp.BySearch, chromedp.NodeVisible),
+		chromedp.Sleep(c.timeBetweenSteps),
+	)
 
 	if err := nomeiaDownload(c.output, fName); err != nil {
 		return fmt.Errorf("erro renomeando arquivo (%s): %v", fName, err)
