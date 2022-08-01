@@ -63,21 +63,32 @@ func (c crawler) crawl() ([]string, error) {
 		log.Fatalf("Erro fazendo download do contracheque: %v", err)
 	}
 	log.Printf("Download realizado com sucesso!\n")
-
 	// Indenizações
-	log.Printf("Realizando seleção (%s/%s)...", c.month, c.year)
-	if err := c.selecionaAno(ctx, "inde", c.year); err != nil {
-		log.Fatalf("Erro no setup:%v", err)
+	monthConverted, err := strconv.Atoi(c.month)
+	if err != nil {
+		log.Fatal("erro ao converter mês para inteiro")
 	}
-	log.Printf("Seleção realizada com sucesso!\n")
-	iFname := c.downloadFilePath("indenizatorias")
-	log.Printf("Fazendo download das indenizações (%s)...", iFname)
-	if err := c.exportaPlanilha(ctx, iFname); err != nil {
-		log.Fatalf("Erro fazendo download dos indenizações: %v", err)
+	yearConverted, err := strconv.Atoi(c.year)
+	if err != nil {
+		log.Fatal("erro ao converter ano para inteiro")
 	}
-	log.Printf("Download realizado com sucesso!\n")
-
-	return []string{cqFname, iFname}, nil
+	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
+	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
+	if yearConverted > 2019 || yearConverted == 2019 && monthConverted >= 7 {
+		log.Printf("Realizando seleção (%s/%s)...", c.month, c.year)
+		if err := c.selecionaAno(ctx, "inde", c.year); err != nil {
+			log.Fatalf("Erro no setup:%v", err)
+		}
+		log.Printf("Seleção realizada com sucesso!\n")
+		iFname := c.downloadFilePath("indenizatorias")
+		log.Printf("Fazendo download das indenizações (%s)...", iFname)
+		if err := c.exportaPlanilha(ctx, iFname); err != nil {
+			log.Fatalf("Erro fazendo download dos indenizações: %v", err)
+		}
+		log.Printf("Download realizado com sucesso!\n")
+		return []string{cqFname, iFname}, nil
+	}
+	return []string{cqFname}, nil
 }
 
 // Retorna os caminhos completos dos arquivos baixados.
@@ -110,15 +121,15 @@ func (c crawler) selecionaAno(ctx context.Context, tipo string, year string) err
 			chromedp.Sleep(c.timeBetweenSteps),
 
 			// Seleciona a opção -> Membros Ativos
-			chromedp.SetValue(`//*[@id="select_opcao1"]`, "membros-ativos", chromedp.BySearch),
+			chromedp.SetValue(`//*[@id="select_opcao1"]`, "membros-ativos", chromedp.BySearch, chromedp.NodeVisible),
 			chromedp.Sleep(c.timeBetweenSteps),
 
 			// Seleciona o ano
-			chromedp.SetValue(`//*[@id="selectAno"]`, year, chromedp.BySearch),
+			chromedp.SetValue(`//*[@id="selectAno"]`, year, chromedp.BySearch, chromedp.NodeVisible),
 			chromedp.Sleep(c.timeBetweenSteps),
 
 			// Consulta
-			chromedp.Click(`//*[@id="btnConsultar"]`, chromedp.BySearch, chromedp.NodeVisible),
+			chromedp.DoubleClick(`//*[@id="btnConsultar"]`, chromedp.BySearch, chromedp.NodeVisible),
 			chromedp.Sleep(c.timeBetweenSteps),
 
 			// Altera o diretório de download
@@ -144,10 +155,10 @@ func (c crawler) exportaPlanilha(ctx context.Context, fName string) error {
 
 	chromedp.Run(ctx,
 		// Clica no botão de download
-		chromedp.Click(link, chromedp.BySearch, chromedp.NodeVisible),
+		chromedp.DoubleClick(link, chromedp.BySearch, chromedp.NodeVisible),
 		chromedp.Sleep(c.timeBetweenSteps),
 	)
-
+	time.Sleep(c.downloadTimeout)
 	if err := nomeiaDownload(c.output, fName); err != nil {
 		return fmt.Errorf("erro renomeando arquivo (%s): %v", fName, err)
 	}
