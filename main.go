@@ -35,6 +35,15 @@ func main() {
 		log.Fatalf("Error creating output folder(%s): %q", outputFolder, err)
 	}
 
+	downloadTimeout := defaultFileDownloadTimeout
+	if os.Getenv("DOWNLOAD_TIMEOUT") != "" {
+		var err error
+		downloadTimeout, err = time.ParseDuration(os.Getenv("DOWNLOAD_TIMEOUT"))
+		if err != nil {
+			log.Fatalf("Invalid DOWNLOAD_TIMEOUT (\"%s\"): %q", os.Getenv("DOWNLOAD_TIMEOUT"), err)
+		}
+	}
+
 	generalTimeout := defaultGeneralTimeout
 	if os.Getenv("GENERAL_TIMEOUT") != "" {
 		var err error
@@ -53,6 +62,7 @@ func main() {
 		}
 	}
 	c := crawler{
+		downloadTimeout:  downloadTimeout,
 		generalTimeout:   generalTimeout,
 		timeBetweenSteps: timeBetweenSteps,
 		year:             year,

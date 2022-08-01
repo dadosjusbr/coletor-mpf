@@ -15,6 +15,7 @@ import (
 
 type crawler struct {
 	// Aqui temos os atributos e métodos necessários para realizar a coleta dos dados
+	downloadTimeout  time.Duration
 	generalTimeout   time.Duration
 	timeBetweenSteps time.Duration
 	year             string
@@ -36,6 +37,7 @@ func (c crawler) crawl() ([]string, error) {
 	)
 	defer allocCancel()
 
+	//Criando o contexto do chromedp
 	ctx, cancel := chromedp.NewContext(
 		alloc,
 		chromedp.WithLogf(log.Printf), // remover comentário para depurar
