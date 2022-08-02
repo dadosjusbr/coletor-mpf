@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -35,46 +39,55 @@ func main() {
 		log.Fatalf("Error creating output folder(%s): %q", outputFolder, err)
 	}
 
-	downloadTimeout := defaultFileDownloadTimeout
-	if os.Getenv("DOWNLOAD_TIMEOUT") != "" {
-		var err error
-		downloadTimeout, err = time.ParseDuration(os.Getenv("DOWNLOAD_TIMEOUT"))
-		if err != nil {
-			log.Fatalf("Invalid DOWNLOAD_TIMEOUT (\"%s\"): %q", os.Getenv("DOWNLOAD_TIMEOUT"), err)
-		}
+	monthMap := map[string]string{
+		"01": "Janeiro",
+		"02": "Fevereiro",
+		"03": "Marco",
+		"04": "Abril",
+		"05": "Maio",
+		"06": "Junho",
+		"07": "Julho",
+		"08": "Agosto",
+		"09": "Setembro",
+		"10": "Outubro",
+		"11": "Novembro",
+		"12": "Dezembro",
 	}
+	cLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.ods", year, year, monthMap[month])
+	cPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
+	log.Printf("Baixando arquivo %s\n", cLink)
+	if err := download(cLink, cPath); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Arquivo baixado com sucesso!\n")
 
-	generalTimeout := defaultGeneralTimeout
-	if os.Getenv("GENERAL_TIMEOUT") != "" {
-		var err error
-		generalTimeout, err = time.ParseDuration(os.Getenv("GENERAL_TIMEOUT"))
-		if err != nil {
-			log.Fatalf("Invalid GENERAL_TIMEOUT (\"%s\"): %q", os.Getenv("GENERAL_TIMEOUT"), err)
-		}
+	iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
+	iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
+	log.Printf("Baixando arquivo %s\n", iLink)
+	if err := download(iLink, iPath); err != nil {
+		log.Fatal(err)
 	}
-
-	timeBetweenSteps := defaulTimeBetweenSteps
-	if os.Getenv("TIME_BETWEEN_STEPS") != "" {
-		var err error
-		timeBetweenSteps, err = time.ParseDuration(os.Getenv("TIME_BETWEEN_STEPS"))
-		if err != nil {
-			log.Fatalf("Invalid TIME_BETWEEN_STEPS (\"%s\"): %q", os.Getenv("TIME_BETWEEN_STEPS"), err)
-		}
-	}
-	c := crawler{
-		downloadTimeout:  downloadTimeout,
-		generalTimeout:   generalTimeout,
-		timeBetweenSteps: timeBetweenSteps,
-		year:             year,
-		month:            month,
-		output:           outputFolder,
-	}
-	downloads, err := c.crawl()
-	if err != nil {
-		log.Fatalf("Error crawling (%s, %s, %s): %v", year, month, outputFolder, err)
-	}
-
+	log.Printf("Arquivo baixado com sucesso!\n")
 	// O parser do MPF espera os arquivos separados por \n. Mudanças aqui tem que
 	// refletir as expectativas lá.
-	fmt.Println(strings.Join(downloads, "\n"))
+	fmt.Println(strings.Join([]string{cPath, iPath}, "\n"))
+}
+
+func download(url, path string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	cFile, err := os.Create(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cFile.Close()
+	cWriter := bufio.NewWriter(cFile)
+	if _, err := io.Copy(cWriter, resp.Body); err != nil {
+		log.Fatal(err)
+	}
+	cWriter.Flush()
+	return nil
 }

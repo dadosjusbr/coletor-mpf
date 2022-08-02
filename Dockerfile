@@ -12,7 +12,6 @@ ENV GO111MODULE=on \
 WORKDIR /build
 
 # Copy and download dependency using go mod
-COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
@@ -28,7 +27,11 @@ WORKDIR /dist
 # Copy binary from build to main folder
 RUN cp /build/main .
 
-FROM chromedp/headless-shell:latest
+FROM alpine:3.16
+
+RUN apk update && \
+    apk add ca-certificates && \
+    rm -rf /var/cache/apk/*
 
 COPY --from=builder /dist/ /
 
