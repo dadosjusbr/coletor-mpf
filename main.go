@@ -10,13 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
-)
-
-const (
-	defaultFileDownloadTimeout = 20 * time.Second // Duração que o coletor deve esperar até que o download de cada um dos arquivos seja concluído
-	defaultGeneralTimeout      = 6 * time.Minute  // Duração máxima total da coleta de todos os arquivos. Valor padrão calculado a partir de uma média de execuções ~4.5min
-	defaulTimeBetweenSteps     = 5 * time.Second  //Tempo de espera entre passos do coletor."
 )
 
 func main() {
@@ -61,16 +54,29 @@ func main() {
 	}
 	log.Printf("Arquivo baixado com sucesso!\n")
 
-	iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
-	iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
-	log.Printf("Baixando arquivo %s\n", iLink)
-	if err := download(iLink, iPath); err != nil {
-		log.Fatal(err)
+	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
+	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
+	monthConverted, err := strconv.Atoi(month)
+	if err != nil {
+		log.Fatal("erro ao converter mês para inteiro")
 	}
-	log.Printf("Arquivo baixado com sucesso!\n")
-	// O parser do MPF espera os arquivos separados por \n. Mudanças aqui tem que
-	// refletir as expectativas lá.
-	fmt.Println(strings.Join([]string{cPath, iPath}, "\n"))
+	yearConverted, err := strconv.Atoi(year)
+	if err != nil {
+		log.Fatal("erro ao converter ano para inteiro")
+	}
+	if yearConverted > 2019 || yearConverted == 2019 && monthConverted >= 7 {
+		iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
+		iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
+		log.Printf("Baixando arquivo %s\n", iLink)
+		if err := download(iLink, iPath); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Arquivo baixado com sucesso!\n")
+		// O parser do MPF espera os arquivos separados por \n. Mudanças aqui tem que
+		// refletir as expectativas lá.
+		fmt.Println(strings.Join([]string{iPath}, "\n"))
+	}
+	fmt.Println(strings.Join([]string{cPath}, "\n"))
 }
 
 func download(url, path string) error {
