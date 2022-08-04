@@ -58,11 +58,11 @@ func main() {
 	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
 	monthConverted, err := strconv.Atoi(month)
 	if err != nil {
-		log.Fatal("erro ao converter mês para inteiro")
+		log.Fatal("erro ao converter mês para inteiro: %w", err)
 	}
 	yearConverted, err := strconv.Atoi(year)
 	if err != nil {
-		log.Fatal("erro ao converter ano para inteiro")
+		log.Fatal("erro ao converter ano para inteiro: %w", err)
 	}
 	if yearConverted > 2019 || yearConverted == 2019 && monthConverted >= 7 {
 		iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
