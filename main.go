@@ -46,16 +46,7 @@ func main() {
 		"11": "Novembro",
 		"12": "Dezembro",
 	}
-	cLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.ods", year, year, monthMap[month])
-	cPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
-	log.Printf("Baixando arquivo %s\n", cLink)
-	if err := download(cLink, cPath); err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Arquivo baixado com sucesso!\n")
 
-	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
-	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
 	monthConverted, err := strconv.Atoi(month)
 	if err != nil {
 		log.Fatal("erro ao converter mês para inteiro: %w", err)
@@ -64,6 +55,22 @@ func main() {
 	if err != nil {
 		log.Fatal("erro ao converter ano para inteiro: %w", err)
 	}
+	// A extensão das planilhas de contracheques é XLS até maio de 2019
+	// Após isso, a extensão adotada foi a ODS.
+	var cLink string
+	if yearConverted <= 2019 || yearConverted == 2019 && monthConverted <= 5 {
+		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.xls", year, year, monthMap[month])
+	} else {
+		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.ods", year, year, monthMap[month])
+	}
+	cPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
+	log.Printf("Baixando arquivo %s\n", cLink)
+	if err := download(cLink, cPath); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Arquivo baixado com sucesso!\n")
+	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
+	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
 	if yearConverted > 2019 || yearConverted == 2019 && monthConverted >= 7 {
 		iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
 		iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
