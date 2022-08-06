@@ -57,13 +57,14 @@ func main() {
 	}
 	// A extensão das planilhas de contracheques é XLS até maio de 2019
 	// Após isso, a extensão adotada foi a ODS.
-	var cLink string
+	var cLink, cPath string
 	if yearConverted == 2018 || yearConverted == 2019 && monthConverted <= 5 {
 		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.xls", year, year, monthMap[month])
+		cPath = filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.xls", month, year))
 	} else {
 		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.ods", year, year, monthMap[month])
+		cPath = filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
 	}
-	cPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
 	log.Printf("Baixando arquivo %s\n", cLink)
 	if err := download(cLink, cPath); err != nil {
 		log.Fatal(err)
