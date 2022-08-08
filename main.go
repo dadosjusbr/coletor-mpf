@@ -90,17 +90,17 @@ func main() {
 func download(url, path string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Erro: %w", err)
 	}
 	defer resp.Body.Close()
 	cFile, err := os.Create(path)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Erro: %w", err)
 	}
 	defer cFile.Close()
 	cWriter := bufio.NewWriter(cFile)
 	if _, err := io.Copy(cWriter, resp.Body); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Erro: %w", err)
 	}
 	cWriter.Flush()
 	return nil
