@@ -27,7 +27,7 @@ Esse coletor é baseado na tecnologia [Chrome DevTools Protocol(CDP)](https://ch
     ```sh
     $ mkdir /tmp/coletormpf
     ```
-    Para executar, basta executar o seguinte comando:
+    Para executar, basta o seguinte comando:
     ```sh
     $ docker run -e YEAR={ano} -e MONTH={mês} -e OUTPUT_FOLDER=/output --name coletormpf --mount type=bind,src=/tmp/coletormpf,dst=/output coletormpf
     ```
