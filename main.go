@@ -10,16 +10,18 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/dadosjusbr/status"
 )
 
 func main() {
 	if _, err := strconv.Atoi(os.Getenv("MONTH")); err != nil {
-		log.Fatalf("Invalid month (\"%s\"): %q", os.Getenv("MONTH"), err)
+		status.ExitFromError(status.NewError(status.InvalidInput, fmt.Errorf("Invalid month (\"%s\"): %w", os.Getenv("MONTH"), err)))
 	}
 	month := os.Getenv("MONTH")
 
 	if _, err := strconv.Atoi(os.Getenv("YEAR")); err != nil {
-		log.Fatalf("Invalid year (\"%s\"): %q", os.Getenv("YEAR"), err)
+		status.ExitFromError(status.NewError(status.InvalidInput, fmt.Errorf("Invalid year (\"%s\"): %w", os.Getenv("YEAR"), err)))
 	}
 	year := os.Getenv("YEAR")
 
@@ -29,7 +31,7 @@ func main() {
 	}
 
 	if err := os.Mkdir(outputFolder, os.ModePerm); err != nil && !os.IsExist(err) {
-		log.Fatalf("Error creating output folder(%s): %q", outputFolder, err)
+		status.ExitFromError(status.NewError(status.SystemError, fmt.Errorf("Error creating output folder(%s): %w", outputFolder, err)))
 	}
 
 	monthMap := map[string]string{
@@ -49,11 +51,11 @@ func main() {
 
 	monthConverted, err := strconv.Atoi(month)
 	if err != nil {
-		log.Fatal("erro ao converter mês para inteiro: %w", err)
+		status.ExitFromError(status.NewError(status.InvalidInput, fmt.Errorf("erro ao converter mês para inteiro: %w", err)))
 	}
 	yearConverted, err := strconv.Atoi(year)
 	if err != nil {
-		log.Fatal("erro ao converter ano para inteiro: %w", err)
+		status.ExitFromError(status.NewError(status.InvalidInput, fmt.Errorf("erro ao converter ano para inteiro: %w", err)))
 	}
 	// A extensão das planilhas de contracheques é XLS até maio de 2019
 	// Após isso, a extensão adotada foi a ODS.
@@ -67,7 +69,7 @@ func main() {
 	}
 	log.Printf("Baixando arquivo %s\n", cLink)
 	if err := download(cLink, cPath); err != nil {
-		log.Fatal(err)
+		status.ExitFromError(err)
 	}
 	log.Printf("Arquivo baixado com sucesso!\n")
 	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
@@ -77,7 +79,7 @@ func main() {
 		iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
 		log.Printf("Baixando arquivo %s\n", iLink)
 		if err := download(iLink, iPath); err != nil {
-			log.Fatal(err)
+			status.ExitFromError(err)
 		}
 		log.Printf("Arquivo baixado com sucesso!\n")
 		// O parser do MPF espera os arquivos separados por \n. Mudanças aqui tem que
@@ -90,17 +92,20 @@ func main() {
 func download(url, path string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Errorf("Erro: %w", err)
+		return status.NewError(status.ConnectionError, err)
+	}
+	if resp.StatusCode == 404 {
+		return status.NewError(status.DataUnavailable, fmt.Errorf("Sem dados!"))
 	}
 	defer resp.Body.Close()
 	cFile, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("Erro: %w", err)
+		return status.NewError(status.SystemError, err)
 	}
 	defer cFile.Close()
 	cWriter := bufio.NewWriter(cFile)
 	if _, err := io.Copy(cWriter, resp.Body); err != nil {
-		return fmt.Errorf("Erro: %w", err)
+		return status.NewError(status.SystemError, err)
 	}
 	cWriter.Flush()
 	return nil
