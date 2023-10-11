@@ -61,10 +61,12 @@ func main() {
 	// Após isso, a extensão adotada foi a ODS.
 	var cLink, cPath string
 	if yearConverted == 2018 || yearConverted == 2019 && monthConverted <= 5 {
-		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.xls", year, year, monthMap[month])
+		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/provento-membros-inativos/%s/provento-membros-inativos_%s_%s.xls", year, year, monthMap[month])
+		// Nesse caso, não modifiquei o nome do arquivo para não ser necessário modificar o parser
 		cPath = filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.xls", month, year))
 	} else {
-		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/remuneracao-membros-ativos/%s/remuneracao-membros-ativos_%s_%s.ods", year, year, monthMap[month])
+		cLink = fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/provento-membros-inativos/%s/provento-membros-inativos_%s_%s.ods", year, year, monthMap[month])
+		// Nesse caso, não modifiquei o nome do arquivo para não ser necessário modificar o parser
 		cPath = filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-contracheques-%s-%s.ods", month, year))
 	}
 	log.Printf("Baixando arquivo %s\n", cLink)
@@ -75,7 +77,8 @@ func main() {
 	// A publicação dos relatórios de Verbas Indenizatórias e outras Remunerações Temporárias
 	// foi iniciada no mês de julho de 2019, em função do início da vigência da Resolução CNMP Nº 200
 	if yearConverted > 2019 || yearConverted == 2019 && monthConverted >= 7 {
-		iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-ativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
+		iLink := fmt.Sprintf("http://www.transparencia.mpf.mp.br/conteudo/contracheque/verbas-indenizatorias-e-outras-remuneracoes-temporarias/membros-inativos/%s/verbas-indenizatorias-e-outras-remuneracoes-temporarias_%s_%s.ods", year, year, monthMap[month])
+		// Nesse caso, não modifiquei o nome do arquivo para não ser necessário modificar o parser
 		iPath := filepath.Join(outputFolder, fmt.Sprintf("membros-ativos-indenizacoes-%s-%s.ods", month, year))
 		log.Printf("Baixando arquivo %s\n", iLink)
 		if err := download(iLink, iPath); err != nil {
